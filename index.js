@@ -5,35 +5,37 @@ const patterns = require('./structures/patterns');
 const knownWords = require('./structures/knownWords');
 const blacklisted = require('./structures/blacklisted');
 const genericTagMappings = require('./structures/genericTagMappings');
+const constants = require('./structures/constants');
 
 // word classification
 
 function shouldIgnore(word){
   return blacklisted[word.normal] ||
-         isEmptyOrWhitespace(word.normal) ||
+         utility.isEmptyOrWhitespace(word.normal) ||
          word.text.indexOf('\'') !== -1 ||
          word.text.indexOf('’') !== -1 ||
          word.text.indexOf('—') !== -1;
 }
+
 function classify(word){
-  word.tag = {};
+    word.tag = {};
   if (shouldIgnore(word)){
     // never use explicitly blacklisted words
   }
   else if (knownWords[word.normal]){
-    word = Object.assign(word, clone(knownWords[word.normal]));
+    word = Object.assign(word, utility.clone(knownWords[word.normal]));
   }
-  else if (contains(['CC','DT','PDT','PP$','PRP'], word.initTag)){
+  else if (utility.contains(['CC','DT','PDT','PP$','PRP'], word.initTag)){
     // If the word's initTag is "fully enumerated", all legal words for that tag should be known.
     // Thus, if we get here, it might be worth logging the word to see if we've missed any legal words.
   }
   else {
-    if (word.lexTags && !contains(word.lexTags, word.initTag)){
+    if (word.lexTags && !utility.contains(word.lexTags, word.initTag)){
       word.initTag = word.lexTags[0];
     }
     var info = genericTagMappings[word.initTag];
     if (info){
-      word = Object.assign(word, clone(info));
+      word = Object.assign(word, utility.clone(info));
     }
   }
   // specially label infinitive verb forms (so we can use them with modals)
@@ -43,9 +45,10 @@ function classify(word){
   return word;
 }
 
+
 function taggedTokenToWord(taggedToken, index){
   var text = taggedToken[0];
-  var normal = normalize(text);
+  var normal = utility.normalize(text);
   return {
     text: text,
     initTag: taggedToken[1],
@@ -56,7 +59,7 @@ function taggedTokenToWord(taggedToken, index){
 }
 
 function wordify(text){
-  var tokens = text.split(/\s+/g).filter(s => s && !isEmptyOrWhitespace(s));
+  var tokens = text.split(/\s+/g).filter(s => s && !utility.isEmptyOrWhitespace(s));
   var tagger = new pos.Tagger();
   var taggedTokens = tagger.tag(tokens);
   var words = taggedTokens.map(taggedTokenToWord);
@@ -71,29 +74,29 @@ function createMatcher(pattern){
     pattern: [pattern.subject, pattern.verb, pattern.object],
     state: STATE_SUBJ,
     patternIdx: 0,
-    requiredCount: COUNT_ANY,
-    requiredInitial: INITIAL_ANY,
+    requiredCount: constants.COUNT_ANY,
+    requiredInitial: constants.INITIAL_ANY,
     words: []
   };
 }
 
 function hasRequiredCount(word, requiredCount){
-  if (requiredCount === COUNT_ANY || !word.count){
+  if (requiredCount === constants.COUNT_ANY || !word.count){
     return true;
-  } else if (requiredCount === COUNT_I) {
+  } else if (requiredCount === constants.COUNT_I) {
     // 'I' takes 'am'/'was' for copula, plural forms otherwise
-    return word.tag.Copula ? word.compatibleWithI : requiredCount === COUNT_PLURAL;
+    return word.tag.Copula ? word.compatibleWithI : requiredCount === constants.COUNT_PLURAL;
   } else {
     return requiredCount === word.count;
   }
 }
 
 function hasRequiredInitial(word, requiredInitial){
-  if (requiredInitial === INITIAL_ANY || !requiredInitial){
+  if (requiredInitial === constants.INITIAL_ANY || !requiredInitial){
     return true;
   } else {
     var initial = word.normal.substring(0,1);
-    var actual = contains(['a','e','i','o','u'], initial) ? INITIAL_VOWEL : INITIAL_CONSONANT;
+    var actual = utility.contains(['a','e','i','o','u'], initial) ? constants.INITIAL_VOWEL : constants.INITIAL_CONSONANT;
     return requiredInitial === actual;
   }
 }
@@ -111,7 +114,7 @@ function pushWord(matcher, word){
 
   matcher.words.push(word);
   matcher.patternIdx += 1;
-  matcher.requiredInitial = word.initial || INITIAL_ANY;
+  matcher.requiredInitial = word.initial || constants.INITIAL_ANY;
   if (word.count){
     matcher.requiredCount = word.count;
   }
@@ -121,7 +124,7 @@ function pushWord(matcher, word){
     matcher.state += 1;
     matcher.patternIdx = 0;
     if (matcher.state === STATE_OBJ){
-      matcher.requiredCount = COUNT_ANY;
+      matcher.requiredCount = constants.COUNT_ANY;
     }
   }
 
