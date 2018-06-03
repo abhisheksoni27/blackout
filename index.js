@@ -1,25 +1,27 @@
 const pos = require('pos');
 const lexicon = require('pos/lexicon');
 const utility = require('./utility');
-const patterns = require('./patterns');
-const knownWords = require('./knownWords');
-const blacklisted = require('./blacklisted');
+const patterns = require('./structures/patterns');
+const knownWords = require('./structures/knownWords');
+const blacklisted = require('./structures/blacklisted');
+const genericTagMappings = require('./structures/genericTagMappings');
 
-// constants
 
-var COUNT_ANY = 0;
-var COUNT_SINGULAR = 1;
-var COUNT_PLURAL = 2;
-var COUNT_I = 3; // special pseudo-count for the pronoun 'I' (needs 'am'/'was' for copula)
+// Constants
 
-var INITIAL_ANY = 0;
-var INITIAL_CONSONANT = 1;
-var INITIAL_VOWEL = 2;
+let COUNT_ANY = 0;
+let COUNT_SINGULAR = 1;
+let COUNT_PLURAL = 2;
+let COUNT_I = 3; // special pseudo-count for the pronoun 'I' (needs 'am'/'was' for copula)
 
-var STATE_SUBJ = 0;
-var STATE_VERB = 1;
-var STATE_OBJ = 2;
-var STATE_DONE = 3;
+let INITIAL_ANY = 0;
+let INITIAL_CONSONANT = 1;
+let INITIAL_VOWEL = 2;
+
+let STATE_SUBJ = 0;
+let STATE_VERB = 1;
+let STATE_OBJ = 2;
+let STATE_DONE = 3;
 
 // word classification
 
@@ -30,22 +32,6 @@ function shouldIgnore(word){
          word.text.indexOf('’') !== -1 ||
          word.text.indexOf('—') !== -1;
 }
-
-var genericTagMappings = {
-  JJ:  {tag: {Adj: true}},
-  JJR: {tag: {Adj: true, Comparative: true}},
-  JJS: {tag: {Adj: true, Superlative: true}},
-  MD:  {tag: {Modal: true}},
-  NN:  {tag: {Noun: true}, count: COUNT_SINGULAR},
-  NNS: {tag: {Noun: true, Plural: true}, count: COUNT_PLURAL},
-  VB:  {tag: {Verb: true}, count: COUNT_PLURAL},
-  VBD: {tag: {Verb: true, PastTense: true}},
-  VBG: {tag: {Gerund: true}},
-  VBN: {tag: {PastParticiple: true}},
-  VBP: {tag: {Verb: true}, count: COUNT_PLURAL},
-  VBZ: {tag: {Verb: true}, count: COUNT_SINGULAR}
-};
-
 function classify(word){
   word.tag = {};
   if (shouldIgnore(word)){
