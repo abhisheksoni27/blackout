@@ -4,6 +4,9 @@
   "description": "Turn arbitrary web pages into procedurally generated blackout poetry.",
   "main": "index.js",
   "author": "Max Kreminski",
+  "scripts": {
+    "build":"browserify index.js -o docs/bundle.js"
+  },
   "dependencies": {
     "pos": "^0.4.2"
   }
