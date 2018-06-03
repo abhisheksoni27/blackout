@@ -32,6 +32,7 @@ module.exports = {
     contains,
     hasPrefix,
     hasSuffix,
-    isEmptyOrWhitespacenormalize,
+    isEmptyOrWhitespace,
+    normalize,
     randNth
 }
