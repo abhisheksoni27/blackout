@@ -5,9 +5,12 @@
   "main": "index.js",
   "author": "Max Kreminski",
   "scripts": {
-    "build":"browserify index.js -o docs/bundle.js"
+    "build": "browserify index.js -o docs/bundle.js"
   },
   "dependencies": {
     "pos": "^0.4.2"
+  },
+  "devDependencies": {
+    "browserify": "^16.2.2"
   }
 }
