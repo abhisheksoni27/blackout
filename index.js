@@ -9,44 +9,41 @@ const constants = require('./structures/constants');
 
 // word classification
 
-function shouldIgnore(word){
+function shouldIgnore(word) {
   return blacklisted[word.normal] ||
-         utility.isEmptyOrWhitespace(word.normal) ||
-         word.text.indexOf('\'') !== -1 ||
-         word.text.indexOf('’') !== -1 ||
-         word.text.indexOf('—') !== -1;
+    utility.isEmptyOrWhitespace(word.normal) ||
+    word.text.indexOf('\'') !== -1 ||
+    word.text.indexOf('’') !== -1 ||
+    word.text.indexOf('—') !== -1;
 }
 
-function classify(word){
-    word.tag = {};
-  if (shouldIgnore(word)){
+function classify(word) {
+  word.tag = {};
+  if (shouldIgnore(word)) {
     // never use explicitly blacklisted words
-  }
-  else if (knownWords[word.normal]){
+  } else if (knownWords[word.normal]) {
     word = Object.assign(word, utility.clone(knownWords[word.normal]));
-  }
-  else if (utility.contains(['CC','DT','PDT','PP$','PRP'], word.initTag)){
+  } else if (utility.contains(['CC', 'DT', 'PDT', 'PP$', 'PRP'], word.initTag)) {
     // If the word's initTag is "fully enumerated", all legal words for that tag should be known.
     // Thus, if we get here, it might be worth logging the word to see if we've missed any legal words.
-  }
-  else {
-    if (word.lexTags && !utility.contains(word.lexTags, word.initTag)){
+  } else {
+    if (word.lexTags && !utility.contains(word.lexTags, word.initTag)) {
       word.initTag = word.lexTags[0];
     }
     var info = genericTagMappings[word.initTag];
-    if (info){
+    if (info) {
       word = Object.assign(word, utility.clone(info));
     }
   }
   // specially label infinitive verb forms (so we can use them with modals)
-  if (word.tag.Verb && word.count === COUNT_PLURAL){
+  if (word.tag.Verb && word.count === constants.COUNT_PLURAL) {
     word.tag.Infinitive = true;
   }
   return word;
 }
 
 
-function taggedTokenToWord(taggedToken, index){
+function taggedTokenToWord(taggedToken, index) {
   var text = taggedToken[0];
   var normal = utility.normalize(text);
   return {
@@ -58,7 +55,7 @@ function taggedTokenToWord(taggedToken, index){
   };
 }
 
-function wordify(text){
+function wordify(text) {
   var tokens = text.split(/\s+/g).filter(s => s && !utility.isEmptyOrWhitespace(s));
   var tagger = new pos.Tagger();
   var taggedTokens = tagger.tag(tokens);
@@ -69,10 +66,10 @@ function wordify(text){
 
 // pattern matching
 
-function createMatcher(pattern){
+function createMatcher(pattern) {
   return {
     pattern: [pattern.subject, pattern.verb, pattern.object],
-    state: STATE_SUBJ,
+    state: constants.STATE_SUBJ,
     patternIdx: 0,
     requiredCount: constants.COUNT_ANY,
     requiredInitial: constants.INITIAL_ANY,
@@ -80,8 +77,8 @@ function createMatcher(pattern){
   };
 }
 
-function hasRequiredCount(word, requiredCount){
-  if (requiredCount === constants.COUNT_ANY || !word.count){
+function hasRequiredCount(word, requiredCount) {
+  if (requiredCount === constants.COUNT_ANY || !word.count) {
     return true;
   } else if (requiredCount === constants.COUNT_I) {
     // 'I' takes 'am'/'was' for copula, plural forms otherwise
@@ -91,39 +88,39 @@ function hasRequiredCount(word, requiredCount){
   }
 }
 
-function hasRequiredInitial(word, requiredInitial){
-  if (requiredInitial === constants.INITIAL_ANY || !requiredInitial){
+function hasRequiredInitial(word, requiredInitial) {
+  if (requiredInitial === constants.INITIAL_ANY || !requiredInitial) {
     return true;
   } else {
-    var initial = word.normal.substring(0,1);
-    var actual = utility.contains(['a','e','i','o','u'], initial) ? constants.INITIAL_VOWEL : constants.INITIAL_CONSONANT;
+    var initial = word.normal.substring(0, 1);
+    var actual = utility.contains(['a', 'e', 'i', 'o', 'u'], initial) ? constants.INITIAL_VOWEL : constants.INITIAL_CONSONANT;
     return requiredInitial === actual;
   }
 }
 
-function shouldAccept(matcher, word){
+function shouldAccept(matcher, word) {
   var targetTag = matcher.pattern[matcher.state][matcher.patternIdx];
   return word.tag[targetTag] &&
-         hasRequiredCount(word, matcher.requiredCount) &&
-         hasRequiredInitial(word, matcher.requiredInitial) &&
-         Math.random() < 0.8;
+    hasRequiredCount(word, matcher.requiredCount) &&
+    hasRequiredInitial(word, matcher.requiredInitial) &&
+    Math.random() < 0.8;
 }
 
-function pushWord(matcher, word){
-  if (matcher.state === STATE_DONE) return matcher; // don't push more words onto a finished match
+function pushWord(matcher, word) {
+  if (matcher.state === constants.STATE_DONE) return matcher; // don't push more words onto a finished match
 
   matcher.words.push(word);
   matcher.patternIdx += 1;
   matcher.requiredInitial = word.initial || constants.INITIAL_ANY;
-  if (word.count){
+  if (word.count) {
     matcher.requiredCount = word.count;
   }
 
   // maybe advance state
-  if (matcher.patternIdx >= matcher.pattern[matcher.state].length){
+  if (matcher.patternIdx >= matcher.pattern[matcher.state].length) {
     matcher.state += 1;
     matcher.patternIdx = 0;
-    if (matcher.state === STATE_OBJ){
+    if (matcher.state === constants.STATE_OBJ) {
       matcher.requiredCount = constants.COUNT_ANY;
     }
   }
@@ -133,19 +130,19 @@ function pushWord(matcher, word){
 
 // tie it all together
 
-function markSentence(words){
+function markSentence(words) {
   var finishedMatchers = [];
   var openMatchers = patterns.map(createMatcher);
-  for (var i = 0; i < words.length; i++){
+  for (var i = 0; i < words.length; i++) {
     var word = words[i];
     var remaining = openMatchers;
     openMatchers = [];
-    for (var j = 0; j < remaining.length; j++){
+    for (var j = 0; j < remaining.length; j++) {
       var matcher = remaining[j];
       var pile = openMatchers;
-      if (shouldAccept(matcher, word)){
+      if (shouldAccept(matcher, word)) {
         matcher = pushWord(matcher, word);
-        if (matcher.state === STATE_DONE){
+        if (matcher.state === constants.STATE_DONE) {
           pile = finishedMatchers;
         }
       }
@@ -154,71 +151,22 @@ function markSentence(words){
     if (openMatchers.length === 0) break; // all matchers finished successfully!
   }
   var matches = finishedMatchers.map(m => m.words);
-  var matchedWords = matches.length > 0 ? randNth(matches) : [];
-  for (i = 0; i < matchedWords.length; i++){
+  var matchedWords = matches.length > 0 ? utility.randNth(matches) : [];
+  for (i = 0; i < matchedWords.length; i++) {
     matchedWords[i].marked = true;
   }
   return words;
 }
 
-function logWord(word){
-  var columns = [word.text,
-                 word.initTag,
-                 Object.keys(word.tag).join(','),
-                 (word.lexTags || []).join(','),
-                 word.count];
-  console.log(columns.join(' | '));
-}
-
-function writePoemifiedText(node, words){
-  var innerHTML = '';
-  var prevWasBlackedOut = false;
-  var blackoutColor = getComputedStyle(node).getPropertyValue('color');
-  var blackoutPrefix = ' <span style="background:' + blackoutColor + '">';
-  for (var j = 0; j < words.length; j++){
-    var word = words[j];
-    if (word.marked){
-      if (prevWasBlackedOut){
-        innerHTML = innerHTML + '</span> ' + word.text;
-      } else {
-        innerHTML = innerHTML + ' ' + word.text;
-      }
-      prevWasBlackedOut = false;
-    } else {
-      if (prevWasBlackedOut){
-        innerHTML = innerHTML + ' ' + word.text;
-      } else {
-        innerHTML = innerHTML + blackoutPrefix + word.text;
-      }
-      prevWasBlackedOut = true;
-    }
+function poemify(text) {
+  let words = wordify(text);
+  let marked;
+  // mark words to keep (i.e. not black out)
+  let attempts = 0;
+  while (attempts < 5) {
+    words = markSentence(words);
+    marked = words.filter(w => w.marked);
+    attempts += 1;
   }
-  node.innerHTML = innerHTML;
-}
-
-function poemify(selector){
-  var nodes = document.querySelectorAll(selector);
-  for (var i = 0; i < nodes.length; i++){
-    // parse the node's text into a series of words
-    var node = nodes[i];
-    if (isEmptyOrWhitespace(node.innerText)) continue; // bail out early if there isn't any text
-    console.log(node.innerText);
-    var words = wordify(node.innerText);
-
-    // mark words to keep (i.e. not black out)
-    var attempts = 0;
-    while (attempts < 5){
-      words = markSentence(words);
-      var marked = words.filter(w => w.marked);
-      if (marked.length > 0){
-        console.log(marked.map(w => w.text).join(' '));
-        marked.map(logWord);
-        break;
-      }
-      attempts += 1;
-    }
-
-    // write text back into the node with most words blacked out
-    writePoemifiedText(node, words);
-  }
+  return marked;
 }
