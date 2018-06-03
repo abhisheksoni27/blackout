@@ -1,4 +1,6 @@
-var genericTagMappings = {
+const constants = require('./constants');
+
+const genericTagMappings = {
     JJ: {
         tag: {
             Adj: true
@@ -25,20 +27,20 @@ var genericTagMappings = {
         tag: {
             Noun: true
         },
-        count: COUNT_SINGULAR
+        count: constants.COUNT_SINGULAR
     },
     NNS: {
         tag: {
             Noun: true,
             Plural: true
         },
-        count: COUNT_PLURAL
+        count: constants.COUNT_PLURAL
     },
     VB: {
         tag: {
             Verb: true
         },
-        count: COUNT_PLURAL
+        count: constants.COUNT_PLURAL
     },
     VBD: {
         tag: {
@@ -60,13 +62,13 @@ var genericTagMappings = {
         tag: {
             Verb: true
         },
-        count: COUNT_PLURAL
+        count: constants.COUNT_PLURAL
     },
     VBZ: {
         tag: {
             Verb: true
         },
-        count: COUNT_SINGULAR
+        count: constants.COUNT_SINGULAR
     }
 };
 module.exports = genericTagMappings;
